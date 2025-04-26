@@ -248,6 +248,15 @@ html {
     pointer-events: none;
   }
   
+
+  .signup-form {
+    width: 300px;
+    max-width: 90%;
+    height: 300px;
+    border: none;
+    border-radius: 8px;
+  }
+  
   /* Responsive */
   @media (max-width: 768px) {
     .nav-container {
