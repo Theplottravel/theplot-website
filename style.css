@@ -106,8 +106,8 @@ nav a {
 
 .form-wrapper iframe {
   width: 90%;
-  max-width: 500px;
-  height: 300px;
+  max-width: 600px;
+  height: 400px;
   border: none;
   border-radius: 8px;
 }
@@ -288,7 +288,7 @@ footer {
   }
 
   .hero h1 {
-    font-size: 2rem;
+    font-size: 2.4rem;
     line-height: 1.2;
     margin-bottom: 1rem;
   }
@@ -318,11 +318,15 @@ footer {
 
   .form-wrapper iframe {
     width: 90% !important;
-    height: 300px;
+    height: 400px;
   }
 
   .leaf {
     width: 150px;
+  }
+
+  .leaf3 {
+    width: 120px;
   }
 
   .about {
@@ -364,9 +368,5 @@ footer {
 
   .footer-left {
     text-align: center;
-  }
-
-  .leaf3 {
-    width: 150px;
   }
 }
