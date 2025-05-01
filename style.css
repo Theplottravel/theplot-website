@@ -102,22 +102,25 @@ nav a {
   display: flex;
   justify-content: center;
   margin-top: 0;
+  position: relative;
+  z-index: 2; /* 👈 Added this line to bring signup form in front of leaves */
 }
 
 .form-wrapper iframe {
-  width: 90%;
-  max-width: 600px;
-  height: 400px;
+  width: 80%;         /* reduced from 90% */
+  max-width: 480px;   /* reduced from 600px */
+  height: 360px;      /* reduced from 400px */
   border: none;
   border-radius: 8px;
 }
+
 
 /* Leaves */
 .leaf {
   position: absolute;
   width: 300px;
   opacity: 0;
-  z-index: 1;
+  z-index: 0; /* changed to send leaves behind signup */
   transition: transform 1s ease-out, opacity 1s ease-out;
 }
 
@@ -141,7 +144,7 @@ nav a {
 /* About Section */
 .about {
   background-color: #4EB15B;
-  color: white;
+  color: #FFFFF2;
   text-align: center;
   padding: 3rem 2rem 2rem;
 }
@@ -159,13 +162,11 @@ nav a {
 .about img.founder-img {
   width: 580px;
   border-radius: 8px;
-  border: 2px solid white;
   margin-top: 1rem;
   margin-bottom: -3rem;
   position: relative;
   z-index: 2;
 }
-
 
 /* Friends Section */
 .friends {
@@ -319,9 +320,11 @@ footer {
   }
 
   .form-wrapper iframe {
-    width: 90% !important;
-    height: 400px;
+    width: 85% !important;
+    max-width: 340px;
+    height: 300px;
   }
+  
 
   .leaf {
     width: 150px;
