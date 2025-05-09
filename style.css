@@ -103,24 +103,23 @@ nav a {
   justify-content: center;
   margin-top: 0;
   position: relative;
-  z-index: 2; /* 👈 Added this line to bring signup form in front of leaves */
+  z-index: 2;
 }
 
 .form-wrapper iframe {
-  width: 80%;         /* reduced from 90% */
-  max-width: 480px;   /* reduced from 600px */
-  height: 360px;      /* reduced from 400px */
+  width: 95%;
+  max-width: 720px;
+  height: 540px;
   border: none;
   border-radius: 8px;
 }
-
 
 /* Leaves */
 .leaf {
   position: absolute;
   width: 300px;
   opacity: 0;
-  z-index: 0; /* changed to send leaves behind signup */
+  z-index: 0;
   transition: transform 1s ease-out, opacity 1s ease-out;
 }
 
@@ -320,11 +319,10 @@ footer {
   }
 
   .form-wrapper iframe {
-    width: 85% !important;
+    width: 95% !important;
     max-width: 340px;
-    height: 300px;
+    height: 380px;
   }
-  
 
   .leaf {
     width: 150px;
