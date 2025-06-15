@@ -25,8 +25,8 @@ export default function TermsPage() {
 
           <section className="mb-8">
             <p className="text-gray-700 leading-relaxed">
-              Welcome to the Plot ("App"). These Terms and Conditions ("Terms") govern your access and use of The Plot,
-              operated by theplot LTD ("Company," "we," "us," or "our") in the United Kingdom. By using the App, you
+            Welcome to the Plot {`("App")`}. These Terms and Conditions {`("Terms")`} govern your access and use of The Plot,
+            operated by theplot LTD {`("Company," "we," "us," or "our")`} in the United Kingdom. By using the App, you
               agree to be bound by these Terms. If you do not agree, you must discontinue using the App immediately.
             </p>
           </section>
