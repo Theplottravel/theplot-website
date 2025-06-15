@@ -122,7 +122,8 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">Connect with Friends</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Share your adventures with friends and see where they've been. Build a community of travel memories.
+                  Share your adventures with friends and see where they&apos;ve been. Build a community of travel
+                  memories.
                 </p>
               </CardContent>
             </Card>
@@ -134,7 +135,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">Document Your Journey</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Keep track of everywhere you've been with rich photos, notes, and memories that last forever.
+                  Keep track of everywhere you&apos;ve been with rich photos, notes, and memories that last forever.
                 </p>
               </CardContent>
             </Card>
@@ -213,8 +214,8 @@ export default function HomePage() {
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">Collaborate with us</h2>
             <p className="text-xl text-gray-600 leading-relaxed">
-              We're open to collaborations of any kind to help get the app out there. Let's build the future of travel
-              together.
+              We&apos;re open to collaborations of any kind to help get the app out there. Let&apos;s build the future
+              of travel together.
             </p>
             <Button size="lg" className="bg-[#4EB15B] hover:bg-[#4EB15B]/90 text-white px-8 py-4 text-lg">
               <Mail className="mr-2 h-5 w-5" />
@@ -256,7 +257,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 ThePlot LTD. All rights reserved.</p>
+            <p>&copy; 2024 The Plot. All rights reserved.</p>
           </div>
         </div>
       </footer>
