@@ -26,9 +26,9 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
             <p className="text-gray-700 leading-relaxed">
-            This Privacy Policy {`("Policy")`} describes the manner in which The Plot {`("Company," "we," "us," or "our")`}
-            collects, processes, and protects personal data when users {`("you," "your")`} access and use the Plot mobile
-            application {`("App")`}. By accessing or using the App, you acknowledge and consent to the practices set forth
+            This Privacy Policy {`("Policy")`} describes the manner in which The Plot ("Company," "we," "us," or "our")
+            collects, processes, and protects personal data when users ("you," "your") access and use the Plot mobile
+            application ("App"). By accessing or using the App, you acknowledge and consent to the practices set forth
               in this Policy.
             </p>
           </section>
