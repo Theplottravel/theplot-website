@@ -199,8 +199,8 @@ export default function HomePage() {
             <div className="space-y-6">
               <h2 className="text-4xl lg:text-5xl font-bold text-white">Who are we?</h2>
               <p className="text-2xl text-white/90 leading-relaxed">
-                22, just finished uni with a passion for authentic travel. Building from scratch a true social media to
-                help travellers have their best travels
+                22, just finished uni with a passion for authentic travel, learning how to build the most authentic
+                travel recommendation app out there!
               </p>
             </div>
 
@@ -269,7 +269,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 The Plot. All rights reserved.</p>
+            <p>&copy; 2025 ThePlot LTD. All rights reserved.</p>
           </div>
         </div>
       </footer>
