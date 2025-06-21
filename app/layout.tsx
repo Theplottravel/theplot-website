@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   title: "The Plot - Join the new age of travel documenting",
   description: "Find, plot, and remember your travels. Made by travellers for travellers for easy sharing of routes, hostels, activities and more.",
   icons: {
-    icon: "/favicon.ico", // <- this line adds the favicon
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 }
 
