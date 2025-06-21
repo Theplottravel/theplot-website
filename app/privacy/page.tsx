@@ -26,19 +26,14 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
             <p className="text-gray-700 leading-relaxed">
-            This Privacy Policy {`("Policy")`} describes the manner in which The Plot ("Company," "we," "us," or "our")
-            collects, processes, and protects personal data when users ("you," "your") access and use the Plot mobile
-            application ("App"). By accessing or using the App, you acknowledge and consent to the practices set forth
-              in this Policy.
+              This Privacy Policy ("Policy") describes the manner in which The Plot ("Company," "we," "us," or "our") collects, processes, and protects personal data when users ("you," "your") access and use the Plot mobile application ("App"). By accessing or using the App, you acknowledge and consent to the practices set forth in this Policy.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Data Collection</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              While using Our Service, We may ask You to provide Us with certain personally identifiable information
-              that can be used to contact or identify You. Personally identifiable information may include, but is not
-              limited to:
+              While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>Name</li>
@@ -50,9 +45,113 @@ export default function PrivacyPage() {
             </ul>
           </section>
 
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Purpose and Use of Data</h2>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>To provide and improve the App’s functionality and services.</li>
+              <li>To display trip details and user-generated content on maps.</li>
+              <li>To facilitate social interactions within the App.</li>
+              <li>To analyse user engagement and improve the App experience.</li>
+              <li>To contact You regarding service updates and features.</li>
+              <li>For analytics, trends, marketing improvements, and your experience.</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">4. Photo Storage and User Content</h2>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>Photos are stored on Google Firebase.</li>
+              <li>Photos are kept according to retention policies.</li>
+              <li>Photos are not edited beyond necessary performance optimisations.</li>
+              <li>Visibility is governed by your privacy settings.</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Data Usage</h2>
+            <p className="text-gray-700 leading-relaxed">
+              Usage Data includes IP addresses, browser types, visit dates and durations, and device identifiers. This may be collected automatically.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Data Sharing and Third Parties</h2>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>Google Places API, Mapbox for maps, analytics services, and social media platforms.</li>
+              <li>Business transfers and partnerships.</li>
+              <li>Only shared with your consent or legal basis.</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">7. User Rights</h2>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>Access, correct, delete, or object to data usage.</li>
+              <li>Request actions by emailing theplot.travel@gmail.com.</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Data Retention</h2>
+            <p className="text-gray-700 leading-relaxed">
+              Data is retained as long as necessary for the purposes in this policy and as required by law.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Delete Your Personal Data</h2>
+            <p className="text-gray-700 leading-relaxed">
+              You may delete your data via your account or request deletion directly. Some data may be retained where legally necessary.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Children's Privacy</h2>
+            <p className="text-gray-700 leading-relaxed">
+              We do not knowingly collect data from children under 13. Contact us if you believe this has occurred.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Legal Compliance</h2>
+            <p className="text-gray-700 leading-relaxed">
+              We comply with GDPR and relevant laws. Data may be disclosed to comply with legal obligations or protect safety and rights.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Business Transfers</h2>
+            <p className="text-gray-700 leading-relaxed">
+              If we are acquired or merged, your data may be transferred to the new entity.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">13. External Links</h2>
+            <p className="text-gray-700 leading-relaxed">
+              We are not responsible for privacy policies or content of third-party websites linked from our Service.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Changes</h2>
+            <p className="text-gray-700 leading-relaxed">
+              We may update this policy. Changes are posted on this page with the updated date.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Device Permissions</h2>
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <li>Camera access: for taking and uploading photos.</li>
+              <li>Location: for tagging and mapping features.</li>
+              <li>Photo Library: to enable uploads, with your permission.</li>
+            </ul>
+          </section>
+
           <div className="mt-12 p-6 bg-[#4EB15B]/5 rounded-lg">
             <p className="text-gray-700">
-              If you have any questions about this Privacy Policy, contact us at{" "}
+              If you have any questions about this Privacy Policy, contact us at{' '}
               <a href="mailto:theplot.travel@gmail.com" className="text-[#4EB15B] hover:underline">
                 theplot.travel@gmail.com
               </a>
