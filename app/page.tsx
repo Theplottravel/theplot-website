@@ -28,7 +28,12 @@ export default function HomePage() {
               <Link href="#join" className="text-gray-700 hover:text-[#4EB15B] transition-colors font-medium">
                 Join
               </Link>
-              <Button className="bg-[#4EB15B] hover:bg-[#4EB15B]/90 text-white">Get Started</Button>
+              <Button
+                className="bg-[#4EB15B] hover:bg-[#4EB15B]/90 text-white"
+                onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Learn More
+              </Button>
             </div>
           </nav>
         </div>
@@ -70,6 +75,7 @@ export default function HomePage() {
                   size="lg"
                   variant="outline"
                   className="border-[#4EB15B] text-[#4EB15B] hover:bg-[#4EB15B]/5 px-8 py-4 text-lg"
+                  onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
                 >
                   Learn More
                 </Button>
@@ -122,8 +128,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">Connect with Friends</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Share your adventures with friends and see where they&apos;ve been. Build a community of travel
-                  memories.
+                  Share your adventures with friends and see where they've been. Build a community of travel memories.
                 </p>
               </CardContent>
             </Card>
@@ -135,7 +140,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">Document Your Journey</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Keep track of everywhere you&apos;ve been with rich photos, notes, and memories that last forever.
+                  Keep track of everywhere you've been with rich photos, notes, and memories that last forever.
                 </p>
               </CardContent>
             </Card>
@@ -148,10 +153,12 @@ export default function HomePage() {
                 <p className="text-lg font-semibold text-gray-900">Need travel advice?</p>
                 <p className="text-gray-600">Join our travel hotline on WhatsApp</p>
               </div>
-              <Button className="bg-[#25D366] hover:bg-[#25D366]/90 text-white">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Join Chat
-              </Button>
+              <Link href="https://chat.whatsapp.com/HlNbHx3Ugid7YWws1nSjzE" target="_blank">
+                <Button className="bg-[#25D366] hover:bg-[#25D366]/90 text-white">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Join Chat
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -191,7 +198,10 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto text-center space-y-12">
             <div className="space-y-6">
               <h2 className="text-4xl lg:text-5xl font-bold text-white">Who are we?</h2>
-              <p className="text-2xl text-white/90 leading-relaxed">22, just graduated uni with a passion for travel</p>
+              <p className="text-2xl text-white/90 leading-relaxed">
+                22, just finished uni with a passion for authentic travel. Building from scratch a true social media to
+                help travellers have their best travels
+              </p>
             </div>
 
             <div className="relative">
@@ -214,13 +224,15 @@ export default function HomePage() {
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">Collaborate with us</h2>
             <p className="text-xl text-gray-600 leading-relaxed">
-              We&apos;re open to collaborations of any kind to help get the app out there. Let&apos;s build the future
-              of travel together.
+              We're open to collaborations of any kind to help get the app out there. Let's build the future of travel
+              together.
             </p>
-            <Button size="lg" className="bg-[#4EB15B] hover:bg-[#4EB15B]/90 text-white px-8 py-4 text-lg">
-              <Mail className="mr-2 h-5 w-5" />
-              Get in Touch
-            </Button>
+            <Link href="mailto:theplot.travel@gmail.com">
+              <Button size="lg" className="bg-[#4EB15B] hover:bg-[#4EB15B]/90 text-white px-8 py-4 text-lg">
+                <Mail className="mr-2 h-5 w-5" />
+                Get in Touch
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
