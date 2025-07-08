@@ -8,7 +8,7 @@ export default function PrivacyPage() {
         <div className="container mx-auto px-6 py-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[#4EB15B] hover:text-[#4EB15B]/80 transition-colors"
+            className="inline-flex items-center gap-2 text-[##17cd1c] hover:text-[##17cd1c]/80 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Home
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
 
       <main className="container mx-auto px-6 py-12 max-w-4xl">
         <div className="prose prose-lg max-w-none">
-          <h1 className="text-4xl font-bold text-[#4EB15B] mb-8">Privacy Policy for The Plot</h1>
+          <h1 className="text-4xl font-bold text-[##17cd1c] mb-8">Privacy Policy for The Plot</h1>
           <p className="text-gray-600 mb-8">
             <em>Last updated: 8 July 2025</em>
           </p>
