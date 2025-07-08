@@ -25,7 +25,7 @@ export default function TermsPage() {
 
           <section className="mb-8">
             <p className="text-gray-700 leading-relaxed">
-              Welcome to the Plot ("App"). These Terms and Conditions ("Terms") govern your access and use of The Plot, operated by theplot LTD ("Company," "we," "us," or "our") in the United Kingdom. By using the App, you agree to be bound by these Terms. If you do not agree, you must discontinue using the App immediately.
+              Welcome to ThePlot ("App"). These Terms and Conditions ("Terms") govern your access and use of ThePlot, operated by ThePlot LTD ("Company," "we," "us," or "our") in the United Kingdom. By using the App, you agree to be bound by these Terms. If you do not agree, you must discontinue using the App immediately.
             </p>
           </section>
 
@@ -55,7 +55,7 @@ export default function TermsPage() {
               <li>Users retain ownership of any content uploaded to the App.</li>
               <li>By posting, you grant us a non-exclusive, royalty-free licence to use, reproduce, and display your content.</li>
               <li>We may remove content that violates these Terms.</li>
-              <li>Users can report inappropriate content for review within 48 hours.</li>
+              <li>Users can report inappropriate content in app for review within 48 hours.</li>
             </ul>
           </section>
 
@@ -97,7 +97,7 @@ export default function TermsPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Copyright and Intellectual Property</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>You must own or have rights to all uploaded content.</li>
-              <li>Report infringements to theplot.travel@gmail.com.</li>
+              <li>Report infringements to emilia@theplot.world</li>
               <li>We may remove infringing content and suspend repeat offenders.</li>
             </ul>
           </section>
@@ -158,8 +158,8 @@ export default function TermsPage() {
           <div className="mt-12 p-6 bg-[#4EB15B]/5 rounded-lg">
             <p className="text-gray-700">
               If you have any questions about these Terms & Conditions, contact us at{' '}
-              <a href="mailto:theplot.travel@gmail.com" className="text-[#4EB15B] hover:underline">
-                theplot.travel@gmail.com
+              <a href="mailto:emilia@theplot.world" className="text-[#4EB15B] hover:underline">
+                emilia@theplot.world
               </a>
             </p>
           </div>
