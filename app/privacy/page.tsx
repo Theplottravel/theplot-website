@@ -57,6 +57,7 @@ export default function PrivacyPage() {
     <li>To analyse user engagement and improve the App experience.</li>
     <li>To contact You regarding service updates and features (if you have provided your email).</li>
     <li>For analytics, trends, marketing improvements, and your experience.</li>
+    <li>To build and maintain a shared database of places, using information submitted by users, to enhance the experience for all users. By submitting place information, you consent to its inclusion in this public/shared database.</li>
   </ul>
 </section>
 
