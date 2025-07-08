@@ -54,6 +54,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>Users retain ownership of any content uploaded to the App.</li>
               <li>By posting, you grant us a non-exclusive, royalty-free licence to use, reproduce, and display your content.</li>
+              <li>By submitting place information, you grant us the right to include it in our shared database of places for the benefit of all users.</li>
               <li>We may remove content that violates these Terms.</li>
               <li>Users can report inappropriate content in app for review within 48 hours.</li>
             </ul>
