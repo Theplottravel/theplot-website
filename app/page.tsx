@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Globe, Users, BookOpen, Mail, Instagram, ExternalLink } from "lucide-react"
+import { ArrowRight, Globe, Users, BookOpen, Mail, Instagram, ExternalLink } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
@@ -206,7 +206,7 @@ export default function HomePage() {
 
             <div className="relative">
               <Image
-                src="/images/founders.jpg"
+                src="/images/founders.png"
                 alt="The Plot Founders"
                 width={600}
                 height={400}
