@@ -2,16 +2,20 @@
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
-    rules: {
-      "react/no-unescaped-entities": "off",
-    },
   },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com', // Allow placeholder images
+      },
+      // Add any other image domains you might use
+    ],
     unoptimized: true,
   },
-}
+};
 
-module.exports = nextConfig
+export default nextConfig;
