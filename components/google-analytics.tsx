@@ -1,15 +1,19 @@
 "use client"
 
 import Script from "next/script"
+import { useEffect } from "react"
+import { usePathname } from "next/navigation" // Import usePathname
 import { useReportWebVitals } from "next/web-vitals"
 
 declare global {
   interface Window {
-    gtag: (...args: unknown[]) => void // Changed any[] to unknown[]
+    gtag: (...args: unknown[]) => void
   }
 }
 
 export function GoogleAnalytics({ gaId }: { gaId: string }) {
+  const pathname = usePathname() // Get the current pathname
+
   useReportWebVitals((metric) => {
     if (window.gtag) {
       window.gtag("event", metric.name, {
@@ -19,6 +23,15 @@ export function GoogleAnalytics({ gaId }: { gaId: string }) {
       })
     }
   })
+
+  useEffect(() => {
+    if (window.gtag) {
+      // Send a page_view event on every route change
+      window.gtag("config", gaId, {
+        page_path: pathname,
+      })
+    }
+  }, [pathname, gaId]) // Re-run effect when pathname or gaId changes
 
   return (
     <>
