@@ -30,17 +30,18 @@ interface RedirectStrategy {
   displayMessage: string;
 }
 
-export default function RobustRedirectPage({ searchParams }: RedirectPageProps) {
+export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps) {
   let { target, mode, oobCode, email, token, uid, username } = searchParams;
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [redirectStrategy, setRedirectStrategy] = useState<RedirectStrategy | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(true);
+  const [attemptedDeepLink, setAttemptedDeepLink] = useState(false);
 
   console.log('Redirect page called with params:', searchParams);
 
-  // Device detection
+  // Enhanced device detection
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const userAgent = navigator.userAgent;
@@ -64,32 +65,26 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
 
   // Validate and sanitize parameters
   const validateParameters = () => {
-    // Validate mode
     if (mode && !['custom_password_reset', 'verify_email'].includes(mode)) {
       throw new Error('Invalid mode parameter');
     }
 
-    // Validate email format if present
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error('Invalid email format');
     }
 
-    // Validate oobCode format (Firebase codes are typically 40+ chars, alphanumeric)
     if (oobCode && !/^[a-zA-Z0-9_-]{20,}$/.test(oobCode)) {
       throw new Error('Invalid verification code format');
     }
 
-    // Validate uid format (Firebase UIDs are 28 chars)
     if (uid && !/^[a-zA-Z0-9]{20,}$/.test(uid)) {
       throw new Error('Invalid user ID format');
     }
 
-    // Validate token format
     if (token && !/^[a-zA-Z0-9_-]{16,}$/.test(token)) {
       throw new Error('Invalid token format');
     }
 
-    // Validate username (basic check)
     if (username && !/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
       throw new Error('Invalid username format');
     }
@@ -132,7 +127,6 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
       };
     }
 
-    // Fallback for unknown devices
     return {
       primary: `https://theplot.world/app/${action}?${paramString}`,
       fallback: [`https://theplot.world/download`],
@@ -140,44 +134,108 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
     };
   };
 
-  // Retry mechanism with exponential backoff
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const attemptRedirect = async (url: string, attemptNumber: number = 0): Promise<boolean> => {
-    const maxRetries = 3;
-    const baseDelay = 1000;
+  // Enhanced app detection using visibility and focus events
+  const attemptDeepLinkWithDetection = async (deepLinkUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const startTime = Date.now();
+      
+      // Set up event listeners to detect if app opened
+      const handleVisibilityChange = () => {
+        if (document.hidden && !resolved) {
+          resolved = true;
+          console.log('App opened - page became hidden');
+          cleanup();
+          resolve(true);
+        }
+      };
 
+      const handleBlur = () => {
+        if (!resolved) {
+          resolved = true;
+          console.log('App opened - window lost focus');
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const handlePageShow = (e: PageTransitionEvent) => {
+        if (e.persisted && !resolved && Date.now() - startTime > 2000) {
+          resolved = true;
+          console.log('App opened - page was persisted');
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const cleanup = () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('pageshow', handlePageShow);
+        clearTimeout(fallbackTimer);
+      };
+
+      // Set up timeout for fallback
+      const fallbackTimer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.log('App detection timeout - app likely not installed');
+          cleanup();
+          resolve(false);
+        }
+      }, 3000);
+
+      // Add event listeners
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', handleBlur);
+      window.addEventListener('pageshow', handlePageShow);
+
+      // Attempt to open the app
+      console.log('Attempting to open app with URL:', deepLinkUrl);
+      
+      try {
+        // For iOS, use a more reliable method
+        if (deviceInfo?.isIOS) {
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = deepLinkUrl;
+          document.body.appendChild(iframe);
+          
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        } else {
+          // For Android and others
+          window.location.href = deepLinkUrl;
+        }
+      } catch (error) {
+        console.error('Error opening deep link:', error);
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(false);
+        }
+      }
+    });
+  };
+
+  const attemptRedirect = async (url: string): Promise<boolean> => {
     try {
       if (url.startsWith('http')) {
-        // For HTTP URLs, try to redirect
+        console.log('Redirecting to web URL:', url);
         window.location.href = url;
         return true;
       } else if (url.startsWith('theplot://')) {
-        // For app scheme URLs, attempt to open and detect if it worked
-        const startTime = Date.now();
-        window.location.href = url;
-        
-        // Wait to see if we're still on the page (app didn't open)
-        await sleep(2000);
-        
-        // If we're still here after 2 seconds, the app probably isn't installed
-        if (Date.now() - startTime >= 1500) {
-          throw new Error('App not installed or unable to open');
-        }
-        return true;
+        console.log('Attempting deep link:', url);
+        setAttemptedDeepLink(true);
+        return await attemptDeepLinkWithDetection(url);
       }
       
       return false;
     } catch (error) {
-      console.error(`Redirect attempt ${attemptNumber + 1} failed:`, error);
-      
-      if (attemptNumber < maxRetries) {
-        const delay = baseDelay * Math.pow(2, attemptNumber);
-        console.log(`Retrying in ${delay}ms...`);
-        await sleep(delay);
-        return attemptRedirect(url, attemptNumber + 1);
-      }
-      
+      console.error('Redirect attempt failed:', error);
       return false;
     }
   };
@@ -198,7 +256,6 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
             console.log('Extracted original URL from safe link:', extractedTarget);
             target = extractedTarget;
             
-            // Re-parse extracted parameters
             try {
               const extractedUri = new URL(extractedTarget);
               const extractedParams = new URLSearchParams(extractedUri.search);
@@ -223,7 +280,7 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
         setRedirectStrategy(strategy);
 
         if (mode === 'custom_password_reset' || mode === 'verify_email') {
-          // Try Branch API for mobile devices
+          // For mobile devices, try Branch API first, then fallbacks
           if (deviceInfo.isMobile) {
             try {
               const queryParams = new URLSearchParams();
@@ -234,10 +291,11 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
               if (uid) queryParams.set('uid', uid);
               if (username) queryParams.set('username', username);
 
+              console.log('Fetching Branch link...');
               const response = await fetch(`/api/getBranchLink?${queryParams.toString()}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-                signal: AbortSignal.timeout(10000) // 10 second timeout
+                signal: AbortSignal.timeout(10000)
               });
 
               if (response.ok) {
@@ -246,29 +304,37 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
                   console.log('Got Branch URL:', data.url);
                   strategy.primary = data.url;
                   
+                  // Try the Branch link first
                   if (await attemptRedirect(strategy.primary)) {
-                    return; // Success!
+                    return;
                   }
                 }
               }
             } catch (branchError) {
               console.error('Branch API failed:', branchError);
             }
-          }
 
-          // Try fallback strategies
-          for (let i = 0; i < strategy.fallback.length; i++) {
-            const fallbackUrl = strategy.fallback[i];
-            setCurrentAttempt(i + 1);
+            // If Branch failed or app didn't open, try direct deep link
+            console.log('Trying direct deep link fallback...');
+            setCurrentAttempt(1);
             
-            console.log(`Attempting fallback ${i + 1}:`, fallbackUrl);
-            
-            if (await attemptRedirect(fallbackUrl)) {
-              return; // Success!
+            if (await attemptRedirect(strategy.fallback[0])) {
+              return;
             }
-            
-            // Wait between attempts
+
+            // If deep link failed, show store/web options
+            console.log('Deep link failed, redirecting to store...');
+            setCurrentAttempt(2);
             await sleep(1000);
+            
+            if (await attemptRedirect(strategy.fallback[1])) {
+              return;
+            }
+          } else {
+            // For desktop, go directly to web app
+            if (await attemptRedirect(strategy.primary)) {
+              return;
+            }
           }
 
           // All attempts failed
@@ -309,13 +375,18 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
       }
     };
 
-    handleRedirect();
+    // Add a small delay to ensure the page is fully loaded
+    const timer = setTimeout(handleRedirect, 500);
+    return () => clearTimeout(timer);
   }, [deviceInfo, mode, oobCode, email, token, uid, username, target]);
 
   // Manual redirect for user
   const handleManualRedirect = () => {
     if (redirectStrategy && redirectStrategy.fallback.length > 0) {
-      window.location.href = redirectStrategy.fallback[0];
+      const fallbackUrl = currentAttempt > 0 && currentAttempt < redirectStrategy.fallback.length 
+        ? redirectStrategy.fallback[currentAttempt]
+        : redirectStrategy.fallback[0];
+      window.location.href = fallbackUrl;
     } else {
       window.location.href = '/';
     }
@@ -342,8 +413,20 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
               )}
               {currentAttempt > 0 && (
                 <p className="text-orange-600 text-sm mb-2">
-                  Trying alternative method ({currentAttempt})...
+                  {currentAttempt === 1 && attemptedDeepLink ? 'Checking if app is installed...' : 
+                   currentAttempt === 2 ? 'Redirecting to app store...' :
+                   `Trying alternative method (${currentAttempt})...`}
                 </p>
+              )}
+              {attemptedDeepLink && currentAttempt === 1 && (
+                <div className="mt-4">
+                  <button
+                    onClick={handleManualRedirect}
+                    className="text-[#17cd1c] underline text-sm hover:text-green-600"
+                  >
+                    App not opening? Tap here to continue
+                  </button>
+                </div>
               )}
             </>
           ) : (
@@ -359,12 +442,22 @@ export default function RobustRedirectPage({ searchParams }: RedirectPageProps) 
               <p className="text-gray-600 mb-4">
                 {error || 'The redirect process encountered an error.'}
               </p>
-              <button
-                onClick={handleManualRedirect}
-                className="bg-[#17cd1c] hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors mb-2"
-              >
-                Try Again
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleManualRedirect}
+                  className="block w-full bg-[#17cd1c] hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  {deviceInfo?.isMobile ? 'Open App Store' : 'Open Web App'}
+                </button>
+                {deviceInfo?.isMobile && (
+                  <button
+                    onClick={() => window.location.href = 'https://theplot.world/app/reset'}
+                    className="block w-full bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                  >
+                    Use Web Version
+                  </button>
+                )}
+              </div>
             </>
           )}
           
