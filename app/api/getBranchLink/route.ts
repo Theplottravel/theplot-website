@@ -3,14 +3,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 // Configuration
-const PROJECT_NUMBER = '415525525584';
 const PROJECT_ID = 'plot1-1-3';
-const POOL_ID = 'vercel-pool';
-const PROVIDER_ID = 'vercel-provider';
-
-// TODO: Replace this with your actual service account email
-// You can find it in Google Cloud Console -> IAM & Admin -> Service Accounts
-const SERVICE_ACCOUNT_EMAIL = `theplot-vercel-sa@plot1-1-3.iam.gserviceaccount.com`;
 
 // Rate limiting storage
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -32,45 +25,6 @@ class APIError extends Error {
   ) {
     super(message);
     this.name = 'APIError';
-  }
-}
-
-// Create workload identity configuration
-function createWorkloadIdentityConfig() {
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN;
-  
-  if (!oidcToken) {
-    throw new Error('VERCEL_OIDC_TOKEN environment variable is not set. Make sure Vercel Authentication is enabled.');
-  }
-
-  return {
-    type: 'external_account',
-    audience: `//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/providers/${PROVIDER_ID}`,
-    subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
-    token_url: 'https://sts.googleapis.com/v1/token',
-    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${SERVICE_ACCOUNT_EMAIL}:generateAccessToken`,
-    credential_source: {
-      format: {
-        type: 'json',
-        subject_token_field_name: 'value'
-      },
-      url: `data:application/json,{"value":"${oidcToken}"}`
-    }
-  };
-}
-
-// Alternative: Service Account Key method (fallback)
-function createServiceAccountConfig() {
-  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  
-  if (!serviceAccountKey) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
-  }
-
-  try {
-    return JSON.parse(serviceAccountKey);
-  } catch (error) {
-    throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_KEY format - must be valid JSON');
   }
 }
 
@@ -198,41 +152,32 @@ export async function GET(req: NextRequest) {
 
     console.log(`[${requestId}] Processing ${validatedParams.mode} for ${validatedParams.email}`);
 
-    // Authentication - try workload identity first, fallback to service account
+    // Authentication with Service Account Key
     let auth: GoogleAuth;
     let branchKey: string;
 
     try {
-      // Debug environment variables (remove in production)
-      console.log(`[${requestId}] Auth debug - VERCEL_OIDC_TOKEN exists:`, !!process.env.VERCEL_OIDC_TOKEN);
-      console.log(`[${requestId}] Auth debug - SERVICE_ACCOUNT_KEY exists:`, !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-
-      // Method 1: Workload Identity (preferred)
-      try {
-        const workloadConfig = createWorkloadIdentityConfig();
-        auth = new GoogleAuth({
-          credentials: workloadConfig,
-          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-        });
-        
-        // Test authentication by getting a client
-        const authClient = await auth.getClient();
-        console.log(`[${requestId}] Successfully authenticated with Workload Identity`);
-        
-      } catch (workloadError) {
-        console.warn(`[${requestId}] Workload Identity failed, trying service account:`, workloadError.message);
-        
-        // Method 2: Service Account Key (fallback)
-        const serviceAccountConfig = createServiceAccountConfig();
-        auth = new GoogleAuth({
-          credentials: serviceAccountConfig,
-          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-        });
-        
-        // Test authentication
-        const authClient = await auth.getClient();
-        console.log(`[${requestId}] Successfully authenticated with Service Account`);
+      const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+      
+      if (!serviceAccountKey) {
+        throw new APIError('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set', 503, 'AUTH_CONFIG_MISSING');
       }
+
+      let credentials;
+      try {
+        credentials = JSON.parse(serviceAccountKey);
+      } catch (parseError) {
+        throw new APIError('Invalid GOOGLE_SERVICE_ACCOUNT_KEY format - must be valid JSON', 503, 'AUTH_CONFIG_INVALID');
+      }
+
+      auth = new GoogleAuth({
+        credentials: credentials,
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      });
+      
+      // Test authentication
+      await auth.getClient();
+      console.log(`[${requestId}] Successfully authenticated with Service Account`);
 
       // Fetch Branch key from Secret Manager
       branchKey = await withRetry(async () => {
@@ -252,8 +197,13 @@ export async function GET(req: NextRequest) {
 
     } catch (authError) {
       console.error(`[${requestId}] Authentication failed:`, authError);
+      
+      if (authError instanceof APIError) {
+        throw authError;
+      }
+      
       throw new APIError(
-        'Authentication service unavailable. Please check your credentials.',
+        'Authentication service unavailable. Please check your service account key.',
         503,
         'AUTH_SERVICE_UNAVAILABLE'
       );
@@ -432,16 +382,5 @@ export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: corsHeaders,
-  });
-}
-
-// Health check endpoint
-export async function HEAD() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Cache-Control': 'no-cache',
-      ...getSecurityHeaders(),
-    },
   });
 }
