@@ -52,14 +52,14 @@ export default function RedirectPage({ searchParams }: RedirectPageProps) {
   if (mode === 'custom_password_reset' && oobCode) {
     console.log('Handling password reset with oobCode:', oobCode);
     // Create a Branch.io deep link for password reset
-    const branchLink = `https://theplot.app-link.com/?mode=custom_password_reset&oobCode=${encodeURIComponent(oobCode)}&email=${encodeURIComponent(email || '')}`;
+    const branchLink = `https://link.theplot.world/?mode=custom_password_reset&oobCode=${encodeURIComponent(oobCode)}&email=${encodeURIComponent(email || '')}`;
     redirect(branchLink);
   }
 
   // Handle email verification for email changes
   if (mode === 'verify_email' && token) {
     console.log('Handling email verification with token:', token);
-    const branchLink = `https://theplot.app-link.com/?mode=verify_email&token=${encodeURIComponent(token)}&uid=${encodeURIComponent(uid || '')}`;
+    const branchLink = `https://link.theplot.world/?mode=verify_email&token=${encodeURIComponent(token)}&uid=${encodeURIComponent(uid || '')}`;
     redirect(branchLink);
   }
 
@@ -228,7 +228,7 @@ function isValidDeepLink(url: string): boolean {
   const webFallbackRegex = /^https:\/\/theplot\.world\/app\/[a-zA-Z0-9\-\._~:\/?#\[\]@!$&'()*+,;=]+$/;
   
   // Branch.io links
-  const branchLinkRegex = /^https:\/\/theplot\.app-link\.com\/.*$/;
+  const branchLinkRegex = /^https:\/\/link\.theplot\.world\/.*$/;
 
   // For HTTPS URLs, additional security checks
   if (url.startsWith('https://')) {
@@ -241,7 +241,7 @@ function isValidDeepLink(url: string): boolean {
       }
       
       // Allow theplot.world and Branch.io domains
-      const allowedHosts = ['theplot.world', 'theplot.app-link.com'];
+      const allowedHosts = ['theplot.world', 'link.theplot.world'];
       if (!allowedHosts.includes(urlObj.host)) {
         return false;
       }
