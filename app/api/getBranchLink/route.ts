@@ -260,7 +260,7 @@ export async function GET(req: NextRequest) {
         
         // Branch link options
         alias: `${validatedParams.mode}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        type: 2, // Marketing link type
+        type: 0, // Default link type (changed from 2 which requires paid plan)
       };
 
       console.log(`[${requestId}] Calling Branch API to create ${action} link`);
