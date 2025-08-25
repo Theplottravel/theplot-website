@@ -8,7 +8,11 @@ const PROJECT_ID = 'plot1-1-3';
 const POOL_ID = 'vercel-pool';
 const PROVIDER_ID = 'vercel-provider';
 
-// Rate limiting storage (in production, use Redis or database)
+// TODO: Replace this with your actual service account email
+// You can find it in Google Cloud Console -> IAM & Admin -> Service Accounts
+const SERVICE_ACCOUNT_EMAIL = `theplot-vercel-sa@plot1-1-3.iam.gserviceaccount.com`;
+
+// Rate limiting storage
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 interface BranchLinkRequest {
@@ -18,11 +22,6 @@ interface BranchLinkRequest {
   token?: string;
   uid?: string;
   username?: string;
-}
-
-interface ValidationError {
-  field: string;
-  message: string;
 }
 
 class APIError extends Error {
@@ -36,10 +35,47 @@ class APIError extends Error {
   }
 }
 
-// Rate limiting
+// Create workload identity configuration
+function createWorkloadIdentityConfig() {
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  
+  if (!oidcToken) {
+    throw new Error('VERCEL_OIDC_TOKEN environment variable is not set. Make sure Vercel Authentication is enabled.');
+  }
+
+  return {
+    type: 'external_account',
+    audience: `//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/providers/${PROVIDER_ID}`,
+    subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
+    token_url: 'https://sts.googleapis.com/v1/token',
+    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${SERVICE_ACCOUNT_EMAIL}:generateAccessToken`,
+    credential_source: {
+      format: {
+        type: 'json',
+        subject_token_field_name: 'value'
+      },
+      url: `data:application/json,{"value":"${oidcToken}"}`
+    }
+  };
+}
+
+// Alternative: Service Account Key method (fallback)
+function createServiceAccountConfig() {
+  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  
+  if (!serviceAccountKey) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
+  }
+
+  try {
+    return JSON.parse(serviceAccountKey);
+  } catch (error) {
+    throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_KEY format - must be valid JSON');
+  }
+}
+
 function checkRateLimit(identifier: string, limit: number = 10, windowMs: number = 60000): boolean {
   const now = Date.now();
-  
   const current = rateLimitStore.get(identifier);
   
   if (!current || current.resetTime < now) {
@@ -55,54 +91,41 @@ function checkRateLimit(identifier: string, limit: number = 10, windowMs: number
   return true;
 }
 
-// Input validation
 function validateBranchLinkRequest(data: Record<string, unknown>): BranchLinkRequest {
-  const errors: ValidationError[] = [];
+  const errors: string[] = [];
 
-  // Validate mode
   if (!data.mode || typeof data.mode !== 'string') {
-    errors.push({ field: 'mode', message: 'Mode is required' });
+    errors.push('Mode is required');
   } else if (!['custom_password_reset', 'verify_email'].includes(data.mode)) {
-    errors.push({ field: 'mode', message: 'Invalid mode value' });
+    errors.push('Invalid mode value');
   }
 
-  // Validate oobCode
   if (!data.oobCode || typeof data.oobCode !== 'string') {
-    errors.push({ field: 'oobCode', message: 'Verification code is required' });
+    errors.push('Verification code is required');
   } else if (!/^[a-zA-Z0-9_-]{20,100}$/.test(data.oobCode)) {
-    errors.push({ field: 'oobCode', message: 'Invalid verification code format' });
+    errors.push('Invalid verification code format');
   }
 
-  // Validate email
   if (!data.email || typeof data.email !== 'string') {
-    errors.push({ field: 'email', message: 'Email is required' });
+    errors.push('Email is required');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    errors.push({ field: 'email', message: 'Invalid email format' });
-  } else if (data.email.length > 254) {
-    errors.push({ field: 'email', message: 'Email too long' });
+    errors.push('Invalid email format');
   }
 
-  // Validate optional token
   if (data.token && (typeof data.token !== 'string' || !/^[a-zA-Z0-9_-]{16,}$/.test(data.token))) {
-    errors.push({ field: 'token', message: 'Invalid token format' });
+    errors.push('Invalid token format');
   }
 
-  // Validate optional uid
   if (data.uid && (typeof data.uid !== 'string' || !/^[a-zA-Z0-9]{20,}$/.test(data.uid))) {
-    errors.push({ field: 'uid', message: 'Invalid user ID format' });
+    errors.push('Invalid user ID format');
   }
 
-  // Validate optional username
   if (data.username && (typeof data.username !== 'string' || !/^[a-zA-Z0-9_]{3,20}$/.test(data.username))) {
-    errors.push({ field: 'username', message: 'Invalid username format' });
+    errors.push('Invalid username format');
   }
 
   if (errors.length > 0) {
-    throw new APIError(
-      `Validation failed: ${errors.map(e => `${e.field}: ${e.message}`).join(', ')}`,
-      400,
-      'VALIDATION_ERROR'
-    );
+    throw new APIError(`Validation failed: ${errors.join(', ')}`, 400, 'VALIDATION_ERROR');
   }
 
   return {
@@ -115,18 +138,16 @@ function validateBranchLinkRequest(data: Record<string, unknown>): BranchLinkReq
   };
 }
 
-// Security headers
 function getSecurityHeaders(): Record<string, string> {
   return {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'none'",
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
   };
 }
 
-// Retry mechanism
 async function withRetry<T>(
   operation: () => Promise<T>,
   maxAttempts: number = 3,
@@ -145,7 +166,7 @@ async function withRetry<T>(
       }
 
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      console.warn(`Operation failed, retrying in ${delay}ms. Attempt ${attempt}/${maxAttempts}`);
+      console.warn(`Attempt ${attempt}/${maxAttempts} failed, retrying in ${delay}ms:`, lastError.message);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -158,21 +179,16 @@ export async function GET(req: NextRequest) {
   const requestId = Math.random().toString(36).substring(2, 15);
   
   try {
-    // Security: Get client IP for rate limiting
-    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                     req.headers.get('x-real-ip') || 
-                    req.headers.get('cf-connecting-ip') || // Cloudflare
+                    req.headers.get('cf-connecting-ip') ||
                     'unknown';
 
     console.log(`[${requestId}] API request from ${clientIP}`);
 
     // Rate limiting
     if (!checkRateLimit(clientIP, 10, 60000)) {
-      throw new APIError(
-        'Too many requests. Please wait before trying again.',
-        429,
-        'RATE_LIMIT_EXCEEDED'
-      );
+      throw new APIError('Too many requests. Please wait before trying again.', 429, 'RATE_LIMIT_EXCEEDED');
     }
 
     // Parse and validate request
@@ -180,39 +196,45 @@ export async function GET(req: NextRequest) {
     const rawParams = Object.fromEntries(url.searchParams.entries());
     const validatedParams = validateBranchLinkRequest(rawParams);
 
-    console.log(`[${requestId}] Validated params for mode: ${validatedParams.mode}`);
+    console.log(`[${requestId}] Processing ${validatedParams.mode} for ${validatedParams.email}`);
 
-    // Authentication with retry
+    // Authentication - try workload identity first, fallback to service account
     let auth: GoogleAuth;
     let branchKey: string;
 
     try {
-      auth = await withRetry(async () => {
-        const googleAuth = new GoogleAuth({
-          credentials: {
-            type: 'external_account',
-            audience: `//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/providers/${PROVIDER_ID}`,
-          },
+      // Debug environment variables (remove in production)
+      console.log(`[${requestId}] Auth debug - VERCEL_OIDC_TOKEN exists:`, !!process.env.VERCEL_OIDC_TOKEN);
+      console.log(`[${requestId}] Auth debug - SERVICE_ACCOUNT_KEY exists:`, !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+
+      // Method 1: Workload Identity (preferred)
+      try {
+        const workloadConfig = createWorkloadIdentityConfig();
+        auth = new GoogleAuth({
+          credentials: workloadConfig,
+          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        });
+        
+        // Test authentication by getting a client
+        const authClient = await auth.getClient();
+        console.log(`[${requestId}] Successfully authenticated with Workload Identity`);
+        
+      } catch (workloadError) {
+        console.warn(`[${requestId}] Workload Identity failed, trying service account:`, workloadError.message);
+        
+        // Method 2: Service Account Key (fallback)
+        const serviceAccountConfig = createServiceAccountConfig();
+        auth = new GoogleAuth({
+          credentials: serviceAccountConfig,
           scopes: ['https://www.googleapis.com/auth/cloud-platform'],
         });
         
         // Test authentication
-        await googleAuth.getClient();
-        return googleAuth;
-      });
+        const authClient = await auth.getClient();
+        console.log(`[${requestId}] Successfully authenticated with Service Account`);
+      }
 
-      console.log(`[${requestId}] Successfully authenticated with GCP`);
-    } catch (authError) {
-      console.error(`[${requestId}] Authentication failed:`, authError);
-      throw new APIError(
-        'Authentication service unavailable',
-        503,
-        'AUTH_SERVICE_UNAVAILABLE'
-      );
-    }
-
-    // Fetch Branch key with retry
-    try {
+      // Fetch Branch key from Secret Manager
       branchKey = await withRetry(async () => {
         const smClient = new SecretManagerServiceClient({ auth });
         const [version] = await smClient.accessSecretVersion({
@@ -224,32 +246,43 @@ export async function GET(req: NextRequest) {
           throw new Error('Branch key is empty');
         }
         
+        console.log(`[${requestId}] Successfully retrieved Branch key (length: ${keyData.length})`);
         return keyData;
       });
 
-      console.log(`[${requestId}] Successfully retrieved Branch key`);
-    } catch (secretError) {
-      console.error(`[${requestId}] Secret retrieval failed:`, secretError);
+    } catch (authError) {
+      console.error(`[${requestId}] Authentication failed:`, authError);
       throw new APIError(
-        'Configuration service unavailable',
+        'Authentication service unavailable. Please check your credentials.',
         503,
-        'CONFIG_SERVICE_UNAVAILABLE'
+        'AUTH_SERVICE_UNAVAILABLE'
       );
     }
 
-    // Generate Branch link with retry and enhanced payload
+    // Generate Branch link
     const branchUrl = await withRetry(async () => {
       const action = validatedParams.mode === 'custom_password_reset' ? 'reset' : 'verify';
       
+      // Create query parameters for URLs
+      const queryParams = new URLSearchParams({
+        mode: validatedParams.mode,
+        oobCode: validatedParams.oobCode,
+        email: validatedParams.email,
+      });
+
+      // Add optional parameters
+      if (validatedParams.token) queryParams.set('token', validatedParams.token);
+      if (validatedParams.uid) queryParams.set('uid', validatedParams.uid);
+      if (validatedParams.username) queryParams.set('username', validatedParams.username);
+
       const branchPayload = {
         branch_key: branchKey,
         channel: 'email',
         feature: validatedParams.mode === 'custom_password_reset' ? 'password_reset' : 'email_verification',
         campaign: `${validatedParams.mode}_email`,
-        stage: process.env.NODE_ENV === 'production' ? 'production' : 'staging',
-        tags: [validatedParams.mode, 'email_redirect'],
+        tags: [validatedParams.mode, 'email_redirect', 'api_generated'],
         data: {
-          // Core parameters
+          // Core authentication data
           mode: validatedParams.mode,
           oobCode: validatedParams.oobCode,
           email: validatedParams.email,
@@ -257,34 +290,36 @@ export async function GET(req: NextRequest) {
           ...(validatedParams.uid && { uid: validatedParams.uid }),
           ...(validatedParams.username && { username: validatedParams.username }),
           
-          // Fallback URLs
-          '$desktop_url': `https://theplot.world/app/${action}?mode=${encodeURIComponent(validatedParams.mode)}&oobCode=${encodeURIComponent(validatedParams.oobCode)}&email=${encodeURIComponent(validatedParams.email)}`,
+          // Branch routing URLs
+          '$desktop_url': `https://theplot.world/app/${action}?${queryParams.toString()}`,
           '$fallback_url': `https://theplot.world/app/${action}`,
           
-          // Mobile deep links
-          '$ios_url': `theplot://${action}?mode=${encodeURIComponent(validatedParams.mode)}&oobCode=${encodeURIComponent(validatedParams.oobCode)}&email=${encodeURIComponent(validatedParams.email)}`,
-          '$android_url': `theplot://${action}?mode=${encodeURIComponent(validatedParams.mode)}&oobCode=${encodeURIComponent(validatedParams.oobCode)}&email=${encodeURIComponent(validatedParams.email)}`,
+          // Deep link URLs for mobile apps
+          '$ios_url': `theplot://${action}?${queryParams.toString()}`,
+          '$android_url': `theplot://${action}?${queryParams.toString()}`,
           
-          // App Store fallbacks
+          // App store fallback URLs
           '$ios_store_url': 'https://apps.apple.com/app/the-plot/id123456789',
           '$android_store_url': 'https://play.google.com/store/apps/details?id=com.theplot.app',
           
           // Metadata
           'request_id': requestId,
-          'timestamp': new Date().toISOString(),
+          'generated_at': new Date().toISOString(),
+          'client_ip': clientIP,
         },
-        // Branch-specific options
+        
+        // Branch link options
         alias: `${validatedParams.mode}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        type: 2, // Marketing link
+        type: 2, // Marketing link type
       };
 
-      console.log(`[${requestId}] Calling Branch API`);
+      console.log(`[${requestId}] Calling Branch API to create ${action} link`);
 
       const response = await fetch('https://api2.branch.io/v1/url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'ThePlot/1.0 (redirect-service)',
+          'User-Agent': 'ThePlot-RedirectService/1.0',
         },
         body: JSON.stringify(branchPayload),
         signal: AbortSignal.timeout(15000), // 15 second timeout
@@ -292,16 +327,18 @@ export async function GET(req: NextRequest) {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to read error response');
+        console.error(`[${requestId}] Branch API error ${response.status}:`, errorText);
         throw new Error(`Branch API responded with ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
       
       if (!data.url) {
+        console.error(`[${requestId}] Branch API returned invalid response:`, data);
         throw new Error('Branch API returned invalid response - missing URL');
       }
 
-      console.log(`[${requestId}] Branch API success`);
+      console.log(`[${requestId}] Branch API success - generated URL: ${data.url}`);
       return data.url;
     });
 
@@ -315,7 +352,7 @@ export async function GET(req: NextRequest) {
         metadata: {
           requestId,
           mode: validatedParams.mode,
-          feature: validatedParams.mode === 'custom_password_reset' ? 'password_reset' : 'email_verification',
+          action: validatedParams.mode === 'custom_password_reset' ? 'reset' : 'verify',
           duration,
           timestamp: new Date().toISOString(),
         }
@@ -340,6 +377,7 @@ export async function GET(req: NextRequest) {
             message: error.message,
             requestId,
             duration,
+            timestamp: new Date().toISOString(),
           }
         },
         {
@@ -360,6 +398,7 @@ export async function GET(req: NextRequest) {
           message: 'An internal error occurred. Please try again later.',
           requestId,
           duration,
+          timestamp: new Date().toISOString(),
         }
       },
       {
@@ -370,7 +409,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Enhanced CORS handling
 export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get('origin');
   const allowedOrigins = [
