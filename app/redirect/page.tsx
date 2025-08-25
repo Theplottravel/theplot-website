@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Script from 'next/script';
+import Link from 'next/link';
 
 interface RedirectPageProps {
   searchParams: {
@@ -55,14 +56,14 @@ export default function RedirectPage({ searchParams }: RedirectPageProps) {
       // Initialize Branch SDK and create deep link
       if (typeof window !== 'undefined' && (mode === 'custom_password_reset' || mode === 'verify_email')) {
         try {
-          // @ts-ignore
-          const branch = window.branch;
+          // @ts-expect-error Branch SDK is loaded dynamically
+          const branch = window.branch as typeof import('branch-sdk');
           if (!branch) {
             throw new Error('Branch SDK not loaded');
           }
 
           await new Promise((resolve, reject) => {
-            branch.init(process.env.NEXT_PUBLIC_BRANCH_KEY, (err: any) => {
+            branch.init(process.env.NEXT_PUBLIC_BRANCH_KEY!, (err: Error | null) => {
               if (err) reject(err);
               else resolve(true);
             });
@@ -82,7 +83,7 @@ export default function RedirectPage({ searchParams }: RedirectPageProps) {
           };
 
           const url = await new Promise<string>((resolve, reject) => {
-            branch.link(linkData, (err: any, url: string) => {
+            branch.link(linkData, (err: Error | null, url: string) => {
               if (err) reject(err);
               else resolve(url);
             });
@@ -134,9 +135,14 @@ export default function RedirectPage({ searchParams }: RedirectPageProps) {
       <div className="min-h-screen bg-[#FFFFF2] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Redirecting to The Plot app...</p>
-          <p className="text-sm text-gray-400 mt-2">If you are not redirected, <a href="/" className="text-[#17cd1c] hover:underline">return to homepage</a>.</p>
+          <p className="text-sm text-gray-400 mt-2">
+            If you are not redirected,{' '}
+            <Link href="/" className="text-[#17cd1c] hover:underline">
+              return to homepage
+            </Link>.
+          </p>
         </div>
-      </Script>
+      </div>
     </>
   );
 }
