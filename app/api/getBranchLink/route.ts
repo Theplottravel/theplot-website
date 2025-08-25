@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
       branchKey = await withRetry(async () => {
         const smClient = new SecretManagerServiceClient({ auth });
         const [version] = await smClient.accessSecretVersion({
-          name: `projects/${PROJECT_ID}/secrets/branch_key/versions/latest`,
+          name: `projects/${PROJECT_ID}/secrets/BRANCH_KEY/versions/latest`,
         });
         
         const keyData = version.payload?.data?.toString();
