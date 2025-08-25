@@ -1,4 +1,7 @@
-import { redirect } from 'next/navigation';
+'use client'
+
+import { useEffect } from 'react';
+import Script from 'next/script';
 
 interface RedirectPageProps {
   searchParams: {
@@ -14,85 +17,128 @@ interface RedirectPageProps {
 
 /**
  * Enhanced redirect page that handles email-based deep links and special modes.
- * This page acts as an intermediary to redirect users to their intended destination.
+ * Redirects users to the app via Branch or app scheme (theplot://).
  */
 export default function RedirectPage({ searchParams }: RedirectPageProps) {
   let { target, mode, oobCode, email, token, uid, username } = searchParams;
 
   console.log('Redirect page called with params:', searchParams);
 
-  // Handle safe links that might wrap our original URL
-  if (target) {
-    const extractedTarget = extractOriginalUrlFromSafeLink(target);
-    if (extractedTarget !== target) {
-      console.log('Extracted original URL from safe link:', extractedTarget);
-      target = extractedTarget;
-      
-      // Re-parse the extracted URL to get the real parameters
-      try {
-        const extractedUri = new URL(extractedTarget);
-        const extractedParams = new URLSearchParams(extractedUri.search);
-        
-        // Override with extracted parameters if they exist
-        mode = extractedParams.get('mode') || mode;
-        oobCode = extractedParams.get('oobCode') || oobCode;
-        email = extractedParams.get('email') || email;
-        token = extractedParams.get('token') || token;
-        uid = extractedParams.get('uid') || uid;
-        username = extractedParams.get('username') || username;
-        
-        console.log('Re-parsed parameters from extracted URL:', { mode, oobCode, email, token, uid, username });
-      } catch (e) {
-        console.error('Error re-parsing extracted URL:', e);
+  useEffect(() => {
+    const handleRedirect = async () => {
+      // Handle safe links that might wrap our original URL
+      if (target) {
+        const extractedTarget = extractOriginalUrlFromSafeLink(target);
+        if (extractedTarget !== target) {
+          console.log('Extracted original URL from safe link:', extractedTarget);
+          target = extractedTarget;
+          
+          // Re-parse the extracted URL to get the real parameters
+          try {
+            const extractedUri = new URL(extractedTarget);
+            const extractedParams = new URLSearchParams(extractedUri.search);
+            
+            mode = extractedParams.get('mode') || mode;
+            oobCode = extractedParams.get('oobCode') || oobCode;
+            email = extractedParams.get('email') || email;
+            token = extractedParams.get('token') || token;
+            uid = extractedParams.get('uid') || uid;
+            username = extractedParams.get('username') || username;
+            
+            console.log('Re-parsed parameters from extracted URL:', { mode, oobCode, email, token, uid, username });
+          } catch (e) {
+            console.error('Error re-parsing extracted URL:', e);
+          }
+        }
       }
-    }
-  }
 
-  // Handle password reset mode
-  if (mode === 'custom_password_reset' && oobCode) {
-    console.log('Handling password reset with oobCode:', oobCode);
-    // Create a Branch.io deep link for password reset
-    const branchLink = `https://link.theplot.world/?mode=custom_password_reset&oobCode=${encodeURIComponent(oobCode)}&email=${encodeURIComponent(email || '')}`;
-    redirect(branchLink);
-  }
+      // Initialize Branch SDK and create deep link
+      if (typeof window !== 'undefined' && (mode === 'custom_password_reset' || mode === 'verify_email')) {
+        try {
+          // @ts-ignore
+          const branch = window.branch;
+          if (!branch) {
+            throw new Error('Branch SDK not loaded');
+          }
 
-  // Handle email verification for email changes
-  if (mode === 'verify_email' && token) {
-    console.log('Handling email verification with token:', token);
-    const branchLink = `https://link.theplot.world/?mode=verify_email&token=${encodeURIComponent(token)}&uid=${encodeURIComponent(uid || '')}`;
-    redirect(branchLink);
-  }
+          await new Promise((resolve, reject) => {
+            branch.init(process.env.NEXT_PUBLIC_BRANCH_KEY, (err: any) => {
+              if (err) reject(err);
+              else resolve(true);
+            });
+          });
 
-  // NOTE: Account verification (signup) no longer uses deep links
-  // Users must manually enter the verification code from their email
+          const linkData = {
+            channel: 'website',
+            feature: mode === 'custom_password_reset' ? 'password_reset' : 'email_verification',
+            data: {
+              mode,
+              oobCode,
+              email,
+              token,
+              uid,
+              username,
+            }
+          };
 
-  // Handle regular target redirects (for universal links)
-  if (target) {
-    console.log('Handling target redirect:', target);
-    let decodedTarget: string;
-    try {
-      decodedTarget = decodeURIComponent(target);
-    } catch (e) {
-      console.error('Error decoding target:', e);
-      // Handle malformed URI component by redirecting to a safe fallback
-      redirect('/');
-    }
+          const url = await new Promise<string>((resolve, reject) => {
+            branch.link(linkData, (err: any, url: string) => {
+              if (err) reject(err);
+              else resolve(url);
+            });
+          });
 
-    // Validate the deep link
-    if (isValidDeepLink(decodedTarget)) {
-      redirect(decodedTarget);
-    } else {
-      console.error('Invalid deep link format:', decodedTarget);
-      redirect('/');
-    }
-  }
+          console.log(`Redirecting to Branch deep link: ${url}`);
+          window.location.href = url;
+        } catch (error) {
+          console.error('Error creating Branch deep link:', error);
+          // Fallback to app scheme
+          const path = mode === 'custom_password_reset' ? 'reset' : 'verify';
+          const fallbackUrl = `theplot://${path}?mode=${encodeURIComponent(mode || '')}&oobCode=${encodeURIComponent(oobCode || '')}&email=${encodeURIComponent(email || '')}&token=${encodeURIComponent(token || '')}&uid=${encodeURIComponent(uid || '')}&username=${encodeURIComponent(username || '')}`;
+          console.log(`Falling back to app scheme: ${fallbackUrl}`);
+          window.location.href = fallbackUrl;
+        }
+      } else if (target) {
+        console.log('Handling target redirect:', target);
+        let decodedTarget: string;
+        try {
+          decodedTarget = decodeURIComponent(target);
+        } catch (e) {
+          console.error('Error decoding target:', e);
+          window.location.href = '/';
+          return;
+        }
 
-  // If no valid parameters, redirect to homepage
-  console.log('No valid parameters found, redirecting to homepage');
-  redirect('/');
+        // Validate the deep link
+        if (isValidDeepLink(decodedTarget)) {
+          window.location.href = decodedTarget;
+        } else {
+          console.error('Invalid deep link format:', decodedTarget);
+          window.location.href = '/';
+        }
+      } else {
+        console.log('No valid parameters found, redirecting to homepage');
+        window.location.href = '/';
+      }
+    };
 
-  // This component will not render anything as `redirect` terminates rendering
-  return null;
+    handleRedirect();
+  }, [mode, oobCode, email, token, uid, username, target]);
+
+  return (
+    <>
+      <Script
+        src="https://cdn.branch.io/branch-latest.min.js"
+        strategy="afterInteractive"
+      />
+      <div className="min-h-screen bg-[#FFFFF2] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to The Plot app...</p>
+          <p className="text-sm text-gray-400 mt-2">If you are not redirected, <a href="/" className="text-[#17cd1c] hover:underline">return to homepage</a>.</p>
+        </div>
+      </Script>
+    </>
+  );
 }
 
 // Helper function to extract original URLs from safe links
@@ -108,7 +154,7 @@ function extractOriginalUrlFromSafeLink(safeLink: string): string {
       }
     }
     
-    // Handle Microsoft Office 365 ATP Safe Links (different format)
+    // Handle Microsoft Office 365 ATP Safe Links
     if (uri.host?.includes('nam02.safelinks.protection.outlook.com') || 
         uri.host?.includes('nam04.safelinks.protection.outlook.com') || 
         uri.host?.includes('eur01.safelinks.protection.outlook.com') ||
@@ -143,7 +189,6 @@ function extractOriginalUrlFromSafeLink(safeLink: string): string {
     if (uri.host?.includes('protect.mimecast.com')) {
       const url = uri.searchParams.get('u');
       if (url) {
-        // Mimecast uses base64 encoding
         try {
           return atob(url);
         } catch (e) {
@@ -169,7 +214,6 @@ function extractOriginalUrlFromSafeLink(safeLink: string): string {
       }
     }
     
-    // If no safe link pattern is detected, return original
     return safeLink;
   } catch (e) {
     console.error('Error extracting URL from safe link:', e);
@@ -180,18 +224,14 @@ function extractOriginalUrlFromSafeLink(safeLink: string): string {
 // Helper function to decode Proofpoint URLs
 function decodeProofpointUrl(encodedUrl: string): string {
   try {
-    // Proofpoint URL Defense encoding patterns
     let decoded = encodedUrl;
     
-    // Replace common Proofpoint encoding patterns
     decoded = decoded.replace(/-/g, '%');
     decoded = decoded.replace(/_/g, '/');
     
-    // Try to decode
     try {
       decoded = decodeURIComponent(decoded);
     } catch (e) {
-      // If decoding fails, try direct replacement patterns
       decoded = encodedUrl
         .replace(/\*2D/g, '-')
         .replace(/\*2E/g, '.')
@@ -202,7 +242,6 @@ function decodeProofpointUrl(encodedUrl: string): string {
         .replace(/\*26/g, '&');
     }
     
-    // Validate that we have a proper URL
     try {
       const testUri = new URL(decoded);
       if (testUri.protocol && testUri.host) {
@@ -221,32 +260,23 @@ function decodeProofpointUrl(encodedUrl: string): string {
 
 // Enhanced validation for deep links and web fallbacks
 function isValidDeepLink(url: string): boolean {
-  // App scheme regex for deep links
-  const appSchemeRegex = /^app:\/\/[a-zA-Z0-9\-\._~:\/?#\[\]@!$&'()*+,;=]+$/;
-  
-  // Web fallback regex for your domain
+  const appSchemeRegex = /^theplot:\/\/[a-zA-Z0-9\-\._~:\/?#\[\]@!$&'()*+,;=]+$/;
   const webFallbackRegex = /^https:\/\/theplot\.world\/app\/[a-zA-Z0-9\-\._~:\/?#\[\]@!$&'()*+,;=]+$/;
-  
-  // Branch.io links
   const branchLinkRegex = /^https:\/\/link\.theplot\.world\/.*$/;
 
-  // For HTTPS URLs, additional security checks
   if (url.startsWith('https://')) {
     try {
       const urlObj = new URL(url);
       
-      // Check for userinfo component (security risk)
       if (urlObj.username || urlObj.password) {
         return false;
       }
       
-      // Allow theplot.world and Branch.io domains
       const allowedHosts = ['theplot.world', 'link.theplot.world'];
       if (!allowedHosts.includes(urlObj.host)) {
         return false;
       }
       
-      // For theplot.world, ensure path starts with '/app/'
       if (urlObj.host === 'theplot.world' && !urlObj.pathname.startsWith('/app/')) {
         return false;
       }
