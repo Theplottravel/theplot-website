@@ -103,21 +103,11 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
     const paramString = baseParams.toString();
     const action = mode === 'custom_password_reset' ? 'reset' : 'verify';
 
-    if (device.isDesktop) {
-      return {
-        primary: `https://theplot.world/app/${action}?${paramString}`,
-        fallback: [
-          `https://theplot.world/download?redirect=${encodeURIComponent(`/app/${action}?${paramString}`)}`
-        ],
-        displayMessage: 'Redirecting to The Plot web app...'
-      };
-    }
-
     if (device.isMobile) {
       return {
-        primary: '', // Will be set to Branch URL
+        primary: `theplot://${action}?${paramString}`, // Prioritize direct deep link
         fallback: [
-          `theplot://${action}?${paramString}`,
+          `https://link.theplot.world/${action}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}?${paramString}`, // Branch link as first fallback
           device.isIOS 
             ? `https://apps.apple.com/app/the-plot/id123456789` 
             : `https://play.google.com/store/apps/details?id=com.theplot.app`,
@@ -129,8 +119,10 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
 
     return {
       primary: `https://theplot.world/app/${action}?${paramString}`,
-      fallback: [`https://theplot.world/download`],
-      displayMessage: 'Redirecting to The Plot...'
+      fallback: [
+        `https://theplot.world/download?redirect=${encodeURIComponent(`/app/${action}?${paramString}`)}`
+      ],
+      displayMessage: 'Redirecting to The Plot web app...'
     };
   };
 
@@ -280,8 +272,15 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
         setRedirectStrategy(strategy);
 
         if (mode === 'custom_password_reset' || mode === 'verify_email') {
-          // For mobile devices, try Branch API first, then fallbacks
+          // For mobile devices, try direct deep link first
           if (deviceInfo.isMobile) {
+            // Try primary deep link
+            if (await attemptRedirect(strategy.primary)) {
+              return;
+            }
+
+            // Try Branch link as first fallback
+            setCurrentAttempt(1);
             try {
               const queryParams = new URLSearchParams();
               if (mode) queryParams.set('mode', mode);
@@ -300,36 +299,24 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
 
               if (response.ok) {
                 const data = await response.json();
-                if (data.url) {
-                  console.log('Got Branch URL:', data.url);
-                  strategy.primary = data.url;
-                  
-                  // Try the Branch link first
-                  if (await attemptRedirect(strategy.primary)) {
-                    return;
-                  }
+                if (data.url && await attemptRedirect(data.url)) {
+                  return;
                 }
               }
             } catch (branchError) {
               console.error('Branch API failed:', branchError);
             }
 
-            // If Branch failed or app didn't open, try direct deep link
-            console.log('Trying direct deep link fallback...');
-            setCurrentAttempt(1);
-            
-            if (await attemptRedirect(strategy.fallback[0])) {
-              return;
+            // Try remaining fallbacks (app store, web)
+            for (let i = 1; i < strategy.fallback.length; i++) {
+              setCurrentAttempt(i + 1);
+              if (await attemptRedirect(strategy.fallback[i])) {
+                return;
+              }
+              await sleep(1000);
             }
 
-            // If deep link failed, show store/web options
-            console.log('Deep link failed, redirecting to store...');
-            setCurrentAttempt(2);
-            await sleep(1000);
-            
-            if (await attemptRedirect(strategy.fallback[1])) {
-              return;
-            }
+            throw new Error('All redirect attempts failed');
           } else {
             // For desktop, go directly to web app
             if (await attemptRedirect(strategy.primary)) {
@@ -337,9 +324,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
             }
           }
 
-          // All attempts failed
           throw new Error('All redirect attempts failed');
-
         } else if (target) {
           // Handle direct target redirects
           let decodedTarget: string;
@@ -361,7 +346,6 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
           console.log('No valid parameters, redirecting to homepage');
           window.location.href = '/';
         }
-
       } catch (err) {
         console.error('Redirect error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
