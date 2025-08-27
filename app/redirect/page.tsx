@@ -110,7 +110,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
           `https://link.theplot.world/${action}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}?${paramString}`, // Branch link as first fallback
           device.isIOS 
             ? `https://apps.apple.com/app/the-plot/id123456789` 
-            : `https://play.google.com/store/apps/details?id=com.theplot.app`,
+            : `https://play.google.com/store/apps/details?id=com.example.plot1_1_1_3`,
           `https://theplot.world/app/${action}?${paramString}`
         ],
         displayMessage: 'Opening The Plot app...'
@@ -128,17 +128,91 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // Enhanced app detection using visibility and focus events
-  const attemptDeepLinkWithDetection = async (deepLinkUrl: string): Promise<boolean> => {
+  // iOS-specific deep link detection with improved reliability
+  const attemptIOSDeepLink = async (deepLinkUrl: string): Promise<boolean> => {
     return new Promise((resolve) => {
       let resolved = false;
       const startTime = Date.now();
       
-      // Set up event listeners to detect if app opened
+      // iOS-specific event handling
+      const handleVisibilityChange = () => {
+        // iOS apps cause immediate visibility change when opened
+        if (document.hidden && !resolved) {
+          resolved = true;
+          console.log('iOS app opened - document hidden');
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const handlePageHide = () => {
+        // iOS Safari fires pagehide when opening apps
+        if (!resolved) {
+          resolved = true;
+          console.log('iOS app opened - pagehide event');
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const handleBlur = () => {
+        // Window blur happens when iOS opens app, but add delay to avoid false positives
+        if (!resolved && Date.now() - startTime > 300) {
+          resolved = true;
+          console.log('iOS app opened - window blur');
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const cleanup = () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pagehide', handlePageHide);
+        window.removeEventListener('blur', handleBlur);
+        clearTimeout(fallbackTimer);
+      };
+
+      // Shorter timeout for iOS - apps open very quickly
+      const fallbackTimer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.log('iOS app not installed or failed to open');
+          cleanup();
+          resolve(false);
+        }
+      }, 1500); // Reduced from 3000ms to 1500ms for iOS
+
+      // Set up iOS-specific event listeners
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pagehide', handlePageHide);
+      window.addEventListener('blur', handleBlur);
+
+      console.log('Attempting iOS deep link:', deepLinkUrl);
+      
+      // For iOS, use direct location.href instead of iframe for better reliability
+      try {
+        window.location.href = deepLinkUrl;
+      } catch (error) {
+        console.error('iOS location.href failed:', error);
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          resolve(false);
+        }
+      }
+    });
+  };
+
+  // Android deep link detection (keep existing functionality)
+  const attemptAndroidDeepLink = async (deepLinkUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const startTime = Date.now();
+      
       const handleVisibilityChange = () => {
         if (document.hidden && !resolved) {
           resolved = true;
-          console.log('App opened - page became hidden');
+          console.log('Android app opened - page became hidden');
           cleanup();
           resolve(true);
         }
@@ -147,7 +221,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
       const handleBlur = () => {
         if (!resolved) {
           resolved = true;
-          console.log('App opened - window lost focus');
+          console.log('Android app opened - window lost focus');
           cleanup();
           resolve(true);
         }
@@ -156,7 +230,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
       const handlePageShow = (e: PageTransitionEvent) => {
         if (e.persisted && !resolved && Date.now() - startTime > 2000) {
           resolved = true;
-          console.log('App opened - page was persisted');
+          console.log('Android app opened - page was persisted');
           cleanup();
           resolve(true);
         }
@@ -169,41 +243,25 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
         clearTimeout(fallbackTimer);
       };
 
-      // Set up timeout for fallback
       const fallbackTimer = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          console.log('App detection timeout - app likely not installed');
+          console.log('Android app detection timeout - app likely not installed');
           cleanup();
           resolve(false);
         }
       }, 3000);
 
-      // Add event listeners
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('blur', handleBlur);
       window.addEventListener('pageshow', handlePageShow);
 
-      // Attempt to open the app
-      console.log('Attempting to open app with URL:', deepLinkUrl);
+      console.log('Attempting Android deep link:', deepLinkUrl);
       
       try {
-        // For iOS, use a more reliable method
-        if (deviceInfo?.isIOS) {
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = deepLinkUrl;
-          document.body.appendChild(iframe);
-          
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-          }, 1000);
-        } else {
-          // For Android and others
-          window.location.href = deepLinkUrl;
-        }
+        window.location.href = deepLinkUrl;
       } catch (error) {
-        console.error('Error opening deep link:', error);
+        console.error('Error opening Android deep link:', error);
         if (!resolved) {
           resolved = true;
           cleanup();
@@ -213,6 +271,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
     });
   };
 
+  // Updated attemptRedirect function with platform-specific handling
   const attemptRedirect = async (url: string): Promise<boolean> => {
     try {
       if (url.startsWith('http')) {
@@ -222,7 +281,16 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
       } else if (url.startsWith('theplot://')) {
         console.log('Attempting deep link:', url);
         setAttemptedDeepLink(true);
-        return await attemptDeepLinkWithDetection(url);
+        
+        // Use platform-specific deep link detection
+        if (deviceInfo?.isIOS) {
+          return await attemptIOSDeepLink(url);
+        } else if (deviceInfo?.isAndroid) {
+          return await attemptAndroidDeepLink(url);
+        } else {
+          // Fallback for other platforms
+          return await attemptAndroidDeepLink(url);
+        }
       }
       
       return false;
@@ -279,7 +347,44 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
               return;
             }
 
-            // Try Branch link as first fallback
+            // For iOS, show manual options faster instead of trying all fallbacks
+            if (deviceInfo.isIOS) {
+              setCurrentAttempt(1);
+              console.log('iOS direct deep link failed, trying Branch link once');
+              
+              // Try Branch link once for iOS
+              try {
+                const queryParams = new URLSearchParams();
+                if (mode) queryParams.set('mode', mode);
+                if (oobCode) queryParams.set('oobCode', oobCode);
+                if (email) queryParams.set('email', email);
+                if (token) queryParams.set('token', token);
+                if (uid) queryParams.set('uid', uid);
+                if (username) queryParams.set('username', username);
+
+                const response = await fetch(`/api/getBranchLink?${queryParams.toString()}`, {
+                  method: 'GET',
+                  headers: { 'Content-Type': 'application/json' },
+                  signal: AbortSignal.timeout(5000) // Shorter timeout for iOS
+                });
+
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.url && await attemptRedirect(data.url)) {
+                    return;
+                  }
+                }
+              } catch (branchError) {
+                console.error('iOS Branch API failed:', branchError);
+              }
+
+              // For iOS, stop here and show manual options
+              setCurrentAttempt(2);
+              setIsRedirecting(false);
+              return;
+            }
+
+            // For Android, continue with existing fallback logic
             setCurrentAttempt(1);
             try {
               const queryParams = new URLSearchParams();
@@ -307,7 +412,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
               console.error('Branch API failed:', branchError);
             }
 
-            // Try remaining fallbacks (app store, web)
+            // Try remaining fallbacks (app store, web) for Android
             for (let i = 1; i < strategy.fallback.length; i++) {
               setCurrentAttempt(i + 1);
               if (await attemptRedirect(strategy.fallback[i])) {
@@ -359,8 +464,8 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
       }
     };
 
-    // Add a small delay to ensure the page is fully loaded
-    const timer = setTimeout(handleRedirect, 500);
+    // Faster execution for iOS, keep existing timing for Android
+    const timer = setTimeout(handleRedirect, deviceInfo.isIOS ? 100 : 500);
     return () => clearTimeout(timer);
   }, [deviceInfo, mode, oobCode, email, token, uid, username, target]);
 
@@ -373,6 +478,12 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
       window.location.href = fallbackUrl;
     } else {
       window.location.href = '/';
+    }
+  };
+
+  const handleTryAgain = () => {
+    if (redirectStrategy) {
+      window.location.href = redirectStrategy.primary;
     }
   };
 
@@ -397,12 +508,16 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
               )}
               {currentAttempt > 0 && (
                 <p className="text-orange-600 text-sm mb-2">
-                  {currentAttempt === 1 && attemptedDeepLink ? 'Checking if app is installed...' : 
-                   currentAttempt === 2 ? 'Redirecting to app store...' :
-                   `Trying alternative method (${currentAttempt})...`}
+                  {deviceInfo?.isIOS ? (
+                    currentAttempt === 1 ? 'Trying alternative link...' : 'Checking app availability...'
+                  ) : (
+                    currentAttempt === 1 && attemptedDeepLink ? 'Checking if app is installed...' : 
+                    currentAttempt === 2 ? 'Redirecting to app store...' :
+                    `Trying alternative method (${currentAttempt})...`
+                  )}
                 </p>
               )}
-              {attemptedDeepLink && currentAttempt === 1 && (
+              {attemptedDeepLink && currentAttempt === 1 && !deviceInfo?.isIOS && (
                 <div className="mt-4">
                   <button
                     onClick={handleManualRedirect}
@@ -415,23 +530,34 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
             </>
           ) : (
             <>
-              <div className="text-red-500 mb-4">
+              <div className={`mb-4 ${error ? 'text-red-500' : 'text-orange-500'}`}>
                 <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={error ? "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 18.5c-.77.833.192 2.5 1.732 2.5z" : "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"} />
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                Unable to Redirect
+                {error ? 'Unable to Redirect' : 'App Not Found'}
               </h2>
               <p className="text-gray-600 mb-4">
-                {error || 'The redirect process encountered an error.'}
+                {error || (deviceInfo?.isIOS ? 
+                  'The Plot app might not be installed on your device.' :
+                  'The redirect process encountered an issue.')}
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {!error && (
+                  <button
+                    onClick={handleTryAgain}
+                    className="block w-full bg-[#17cd1c] hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+                  >
+                    Try Opening App Again
+                  </button>
+                )}
                 <button
                   onClick={handleManualRedirect}
-                  className="block w-full bg-[#17cd1c] hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+                  className="block w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
                 >
-                  {deviceInfo?.isMobile ? 'Open App Store' : 'Open Web App'}
+                  {deviceInfo?.isIOS ? 'Get App from App Store' : 
+                   deviceInfo?.isMobile ? 'Open App Store' : 'Open Web App'}
                 </button>
                 {deviceInfo?.isMobile && (
                   <button
@@ -461,7 +587,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
   );
 }
 
-// Enhanced safe link extraction with more providers
+// Enhanced safe link extraction with more providers (keep existing)
 function extractOriginalUrlFromSafeLink(safeLink: string): string {
   try {
     const uri = new URL(safeLink);
@@ -518,7 +644,7 @@ function extractOriginalUrlFromSafeLink(safeLink: string): string {
   }
 }
 
-// Enhanced Proofpoint URL decoding
+// Enhanced Proofpoint URL decoding (keep existing)
 function decodeProofpointUrl(encodedUrl: string): string {
   try {
     let decoded = encodedUrl;
@@ -557,7 +683,7 @@ function decodeProofpointUrl(encodedUrl: string): string {
   }
 }
 
-// Enhanced deep link validation
+// Enhanced deep link validation (keep existing)
 function isValidDeepLink(url: string): boolean {
   try {
     const urlObj = new URL(url);
