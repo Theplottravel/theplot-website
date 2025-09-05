@@ -189,7 +189,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700">
               If you have any questions about this Privacy Policy, contact us at{' '}
               <a href="mailto:info@theplot.world" className="text-[#4EB15B] hover:underline">
-                emilia@theplot.world
+                info@theplot.world
               </a>
             </p>
           </div>
