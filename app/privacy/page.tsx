@@ -36,13 +36,24 @@ export default function PrivacyPage() {
      While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:
               </p>
   <ul className="list-disc pl-6 text-gray-700 space-y-2">
-    <li>Name</li>
-    <li>Email address</li>
-    <li>Location data</li>
-    <li>Trip details</li>
-    <li>Age</li>
-    <li>Sex</li>
+    <li>Name and Username: For account identification and social features</li>
+    <li>Email Address:For account verification, authentication, and essential communications </li>
+    <li>Password:Stored using bcrypt hashing with salt for security (via Firebase Authentication)</li>
+    <li>Date of Birth:Full date (day, month, year) for age verification - you must be 16 or older    </li>
+    <li>Country/Region: For improved search results and local content recommendations </li>
+    <li>Account Creation Metadata: IP address, device information, timestamp </li>
+    <li>Terms & Privacy Acceptance:Explicit consent records with version numbers, timestamps, and IP addresses </li>
   </ul>
+
+  You may provide:
+  <ul className="list-disc pl-6 text-gray-700 space-y-2">
+    <li>Gender/Sex:Options include "Other," "Male," "Female," "Non-binary," "Prefer not to say"</li>
+    <li>Pronouns: For respectful social interactions    </li>
+    <li>Bio Information: Maximum 500 characters for profile description    </li>
+    <li>Favourite Place: One location to highlight on your profile    </li>
+
+  </ul>
+
   <p className="text-gray-700 leading-relaxed mt-4">
     We respect your privacy — we do <strong>not sell, rent, or trade your personal information (such as your name or email address) to third parties</strong>. Your personally identifiable information is used solely to provide and improve the App, and to communicate with you when necessary.
   </p>
@@ -90,8 +101,8 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">7. User Rights</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li>Access, correct, delete, or object to data usage.</li>
-              <li>Request actions to be done in app or by emailing emilia@theplot.world</li>
+              <li>Access, correct, delete, or object to data usage in app and via email.</li>
+              <li>Request actions to be done in app or by emailing info@theplot.world</li>
             </ul>
           </section>
 
@@ -112,7 +123,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Children's Privacy</h2>
             <p className="text-gray-700 leading-relaxed">
-              We do not knowingly collect data from children under 13. Contact us if you believe this has occurred.
+              We do not knowingly collect data from children under 16. Contact us if you believe this has occurred.
             </p>
           </section>
 
@@ -147,18 +158,37 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Device Permissions</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li>Camera access: for taking and uploading photos.</li>
-              <li>Photo Library: to enable uploads, with your permission.</li>
+              <li>Camera Access: The App requests access to your device camera only to allow you to take photos and upload them to the App.</li>
+              <li>Photo Library Access: The App may request access to your photo library to let you select and upload images.</li>
+              <li>Location Data: We do not access your device’s real-time GPS location. Any location information in the App is manually entered by you.</li>
+
             </ul>
             <p className="text-gray-700 leading-relaxed">
   We do not collect or track your real-time GPS location. Any location data stored in the App is entered by you manually, solely for the purpose of displaying your travel history.
+  We do not access real-time location from device GPS, and location data can be removed by user at anytime.
 </p>
+          </section>
+
+
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Legal Basis for Processing and Data Storage </h2>
+            <p className="text-gray-700 leading-relaxed">
+            <ul className="list-disc pl-6 text-gray-700 space-y-2">
+            Legal Basis: We process your personal data based on:
+              <li> Contractual Necessity: To provide the App’s services and functionality.              </li>
+              <li>Consent: You voluntarily provide information, such as uploading photos or submitting travel locations.              </li>
+              <li>Legitimate Interests: To analyse app usage, improve features, and maintain a safe community.              </li>
+              <li>Data Storage: Your personal data is stored securely on servers located in the United Kingdom and European Union. Data is retained only as long as necessary to provide the service or as required by law.              </li>
+            </ul>
+
+            </p>
           </section>
 
           <div className="mt-12 p-6 bg-[#4EB15B]/5 rounded-lg">
             <p className="text-gray-700">
               If you have any questions about this Privacy Policy, contact us at{' '}
-              <a href="mailto:emilia@theplot.world" className="text-[#4EB15B] hover:underline">
+              <a href="mailto:info@theplot.world" className="text-[#4EB15B] hover:underline">
                 emilia@theplot.world
               </a>
             </p>

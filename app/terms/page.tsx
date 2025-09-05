@@ -32,7 +32,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">1. User Eligibility</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li>You must be at least 13 years old to create an account.</li>
+              <li>You must be at least 16 years old to create an account.</li>
               <li>By using the App, you confirm that you are legally capable of entering into these Terms.</li>
             </ul>
           </section>
@@ -106,7 +106,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Location Data and Privacy</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
-              <li>We collect and use location data to enhance experience.</li>
+              <li>All location data is entered manually by you. We do not access your devices GPS or track your real-time location.</li>
               <li>Opt out of location tracking via app settings.</li>
               <li>We are not liable for risks of real-time location sharing.</li>
             </ul>
@@ -134,7 +134,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li>User data may be disclosed to authorities when legally required.</li>
               <li>UK laws govern these Terms.</li>
-              <li>EU residents retain their local legal rights.</li>
+              <li>Residents of the EU or other regions may have additional consumer rights under local law.</li>
               <li>You confirm you are not on any US restricted list.</li>
             </ul>
           </section>
@@ -159,8 +159,8 @@ export default function TermsPage() {
           <div className="mt-12 p-6 bg-[#4EB15B]/5 rounded-lg">
             <p className="text-gray-700">
               If you have any questions about these Terms & Conditions, contact us at{' '}
-              <a href="mailto:emilia@theplot.world" className="text-[#4EB15B] hover:underline">
-                emilia@theplot.world
+              <a href="mailto:info@theplot.world" className="text-[#4EB15B] hover:underline">
+                info@theplot.world
               </a>
             </p>
           </div>
