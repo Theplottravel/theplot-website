@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <div className="prose prose-lg max-w-none">
           <h1 className="text-4xl font-bold text-[##17cd1c] mb-8">Privacy Policy for The Plot</h1>
           <p className="text-gray-600 mb-8">
-            <em>Last updated: 8 July 2025</em>
+            <em>Last updated: 5 September 2025</em>
           </p>
 
           <section className="mb-8">

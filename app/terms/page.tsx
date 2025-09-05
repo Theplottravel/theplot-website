@@ -20,7 +20,7 @@ export default function TermsPage() {
         <div className="prose prose-lg max-w-none">
           <h1 className="text-4xl font-bold text-[#4EB15B] mb-8">Terms & Conditions</h1>
           <p className="text-gray-600 mb-8">
-            <em>Last updated: 27 May 2025</em>
+            <em>Last updated: 5 September 2025</em>
           </p>
 
           <section className="mb-8">
