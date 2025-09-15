@@ -30,6 +30,14 @@ interface RedirectStrategy {
   displayMessage: string;
 }
 
+interface EnvironmentConfig {
+  isStaging: boolean;
+  baseUrl: string;
+  apiEndpoint: string;
+  appStoreUrl: string;
+  playStoreUrl: string;
+}
+
 export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps) {
   let { target, mode, oobCode, email, token, uid, username } = searchParams;
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
@@ -92,6 +100,8 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
 
   // Create redirect strategy based on device and action
   const createRedirectStrategy = (device: DeviceInfo): RedirectStrategy => {
+    const envConfig = getEnvironmentConfig(); // Fixed: declare envConfig here
+    
     const baseParams = new URLSearchParams();
     if (mode) baseParams.set('mode', mode);
     if (oobCode) baseParams.set('oobCode', oobCode);
@@ -99,30 +109,32 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
     if (token) baseParams.set('token', token);
     if (uid) baseParams.set('uid', uid);
     if (username) baseParams.set('username', username);
-
+    
+    // Add environment to parameters
+    baseParams.set('environment', envConfig.isStaging ? 'staging' : 'production');
+  
     const paramString = baseParams.toString();
     const action = mode === 'custom_password_reset' ? 'reset' : 'verify';
-
+  
     if (device.isMobile) {
       return {
         primary: `theplot://${action}?${paramString}`, // Prioritize direct deep link
         fallback: [
-          `https://link.theplot.world/${action}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}?${paramString}`, // Branch link as first fallback
-          device.isIOS 
-            ? `https://apps.apple.com/app/the-plot/id123456789` 
-            : `https://play.google.com/store/apps/details?id=com.example.plot1_1_1_3`,
-          `https://theplot.world/app/${action}?${paramString}`
+          `https://link${envConfig.isStaging ? '-staging' : ''}.theplot.world/${action}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}?${paramString}`, // Environment-specific Branch link
+          envConfig.appStoreUrl,
+          envConfig.playStoreUrl,
+          `${envConfig.baseUrl}/app/${action}?${paramString}`
         ],
-        displayMessage: 'Opening The Plot app...'
+        displayMessage: `Opening The Plot app${envConfig.isStaging ? ' (Staging)' : ''}...`
       };
     }
-
+  
     return {
-      primary: `https://theplot.world/app/${action}?${paramString}`,
+      primary: `${envConfig.baseUrl}/app/${action}?${paramString}`,
       fallback: [
-        `https://theplot.world/download?redirect=${encodeURIComponent(`/app/${action}?${paramString}`)}`
+        `${envConfig.baseUrl}/download?redirect=${encodeURIComponent(`/app/${action}?${paramString}`)}`
       ],
-      displayMessage: 'Redirecting to The Plot web app...'
+      displayMessage: `Redirecting to The Plot web app${envConfig.isStaging ? ' (Staging)' : ''}...`
     };
   };
 
@@ -271,6 +283,26 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
     });
   };
 
+  function getEnvironmentConfig(): EnvironmentConfig {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isStaging = hostname.includes('staging') || hostname.includes('test') || 
+                     process.env.NODE_ENV === 'development';
+    
+    return {
+      isStaging,
+      baseUrl: isStaging ? 'https://staging.theplot.world' : 'https://theplot.world',
+      apiEndpoint: isStaging ? '/api/getBranchLink' : '/api/getBranchLink',
+      appStoreUrl: isStaging 
+        ? 'https://testflight.apple.com/join/your-testflight-link' // Replace with actual TestFlight link
+        : 'https://apps.apple.com/app/the-plot/id123456789',
+      playStoreUrl: isStaging
+        ? 'https://play.google.com/apps/internaltest/4700151707835615870' // Replace with actual internal testing link
+        : 'https://play.google.com/store/apps/details?id=com.example.plot1_1_1_3'
+    };
+  }
+  
+  
+
   // Updated attemptRedirect function with platform-specific handling
   const attemptRedirect = async (url: string): Promise<boolean> => {
     try {
@@ -354,6 +386,7 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
               
               // Try Branch link once for iOS
               try {
+                const envConfig = getEnvironmentConfig();
                 const queryParams = new URLSearchParams();
                 if (mode) queryParams.set('mode', mode);
                 if (oobCode) queryParams.set('oobCode', oobCode);
@@ -361,21 +394,28 @@ export default function ImprovedRedirectPage({ searchParams }: RedirectPageProps
                 if (token) queryParams.set('token', token);
                 if (uid) queryParams.set('uid', uid);
                 if (username) queryParams.set('username', username);
-
-                const response = await fetch(`/api/getBranchLink?${queryParams.toString()}`, {
+                
+                // Add environment parameter
+                queryParams.set('environment', envConfig.isStaging ? 'staging' : 'production');
+              
+                console.log(`Fetching Branch link for ${envConfig.isStaging ? 'staging' : 'production'} environment...`);
+                const response = await fetch(`${envConfig.apiEndpoint}?${queryParams.toString()}`, {
                   method: 'GET',
                   headers: { 'Content-Type': 'application/json' },
-                  signal: AbortSignal.timeout(5000) // Shorter timeout for iOS
+                  signal: AbortSignal.timeout(10000)
                 });
-
+              
                 if (response.ok) {
                   const data = await response.json();
+                  console.log(`Branch API response for ${envConfig.isStaging ? 'staging' : 'production'}:`, data);
                   if (data.url && await attemptRedirect(data.url)) {
                     return;
                   }
+                } else {
+                  console.error(`Branch API failed for ${envConfig.isStaging ? 'staging' : 'production'}:`, response.status, await response.text());
                 }
               } catch (branchError) {
-                console.error('iOS Branch API failed:', branchError);
+                console.error(`Branch API error for ${envConfig.isStaging ? 'staging' : 'production'}:`, branchError);
               }
 
               // For iOS, stop here and show manual options
