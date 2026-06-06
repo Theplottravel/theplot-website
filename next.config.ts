@@ -16,6 +16,23 @@ const nextConfig = {
     ],
     unoptimized: true,
   },
+  async headers() {
+    return [
+      {
+        // iOS requires apple-app-site-association served as application/json
+        source: '/.well-known/apple-app-site-association',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+        ],
+      },
+      {
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

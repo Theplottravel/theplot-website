@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["APPLE_TEAM_ID.com.ThePlot.1113"],
+        "components": [
+          {
+            "/": "/auth/*",
+            "comment": "Auth callbacks — magic link sign-in"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["APPLE_TEAM_ID.com.ThePlot.1113"]
+  }
+}
